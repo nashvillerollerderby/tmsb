@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<!--
+  TMSB Overlay
+  Copyright (C) 2026 Haley "Thin Mint" Stelly
+
+  Derived from the CRG Scoreboard overlay.
+  Original source: https://github.com/rollerderby/scoreboard
+  Original authors: CRG Scoreboard contributors
+
+  This program is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  See LICENSE and NOTICE for full details.
+-->
+<html>
+  <head>
+    <title>Admin | TMSB Overlay — v2.0.0 | CRG Scoreboard</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🟤</text></svg>" />
+    <script src="../config.js"></script>
+    <script src="../loader.js"></script>
+  </head>
+
+  <body
+    sbPrefix="$: ScoreBoard.Settings.Setting(Overlay.TMSB : )"
+    sbOn="keyup: ovaKeyHandler"
+  >
+    <div id="Controls">
+      <div id="Core" class="Panel">
+        <h2>Elements</h2>
+        <button data-key="C" sbToggle="$.Clock"            class="ToggleSwitch">Clock [C]</button>
+        <button data-key="S" sbToggle="$.Score"            class="ToggleSwitch">Score [S]</button>
+        <button data-key="J" sbToggle="$.ShowJammers"      class="ToggleSwitch">Jammers [J]</button>
+        <button data-key="L" sbToggle="$.ShowTrack"        class="ToggleSwitch">Lineup [L]</button>
+        <button data-key="G" sbToggle="$.GameTab.Show"     class="ToggleSwitch">Game Tab [G]</button>
+        <button data-key="B" sbToggle="$.BottomPlacement"  class="ToggleSwitch">Bottom Placement [B]</button>
+      </div>
+
+      <div id="Panel" class="Panel">
+        <h2>Panels</h2>
+        <select id="PanelSelect" sbCall="ovaSelectPanel">
+          <option data-key="X" value="">--- No Panel --- [X]</option>
+          <option data-key="0" value="PPJBox">Points per Jam [0]</option>
+          <option data-key="1" value="RosterTeam1">Roster (T1) [1]</option>
+          <option data-key="2" value="RosterTeam2">Roster (T2) [2]</option>
+          <option data-key="3" value="PenaltyTeam1">Penalty (T1) [3]</option>
+          <option data-key="4" value="PenaltyTeam2">Penalty (T2) [4]</option>
+          <option data-key="9" value="LowerThird" data-form=".ExtraFormLower">Lower Third [9]</option>
+          <option data-key="U" value="Upcoming">Upcoming [U]</option>
+        </select>
+
+        <button id="PanelSet" class="ToggleSwitch" sbClass="sbActive: $.Panel: ovaUpdatePanel" sbSet="$.Panel: ovaGetNextPanel"></button>
+
+        <div id="LowerThirdControls" class="sbHide">
+          <h2>Lower Third</h2>
+          <div class="in">
+            <label>Line 1/Line 2/Style</label>
+            <input sbControl="$.LowerThird.Line1" type="text" /><br />
+            <input sbControl="$.LowerThird.Line2" type="text" /><br />
+            <select sbControl="$.LowerThird.Style">
+              <option value="ColourDefault">--- Default ---</option>
+              <option value="ColourTeam1">Team 1</option>
+              <option value="ColourTeam2">Team 2</option>
+            </select>
+
+            <label>Auto Skater Generator</label>
+            <select id="Skaters" sbContext="ScoreBoard.CurrentGame" sbCall="ovaSelectLowerThird">
+              <option
+                sbForeach="Skater::sort: resort=Name"
+                sbContext="Team(*)"
+                sbAttr="sort: Name: k.Team + '_' + v | data-style:-: 'ColourTeam' + k.Team | data-line1: Name  | data-line2: ^Name | value: Id"
+                sbDisplay="Name"
+              ></option>
+            </select>
+
+            <label>Store</label>
+            <select id="Keepers" style="width: 80%; float: left" sbCall="ovaSelectLowerThird">
+              <option data-line1="" data-line2="" data-style="ColourDefault">--- Clear ---</option>
+            </select>
+            <button id="KeeperAdd" style="width: 15%" sbCall="ovaAddKeeper">+</button>
+          </div>
+        </div>
+      </div>
+      <div id="LocalTeamSettings" class="Panel">
+        <h2>Team Display</h2>
+        <label class="team-header">Team 1</label>
+        <label>Name</label>
+        <input id="LtsT1Name" type="text" placeholder="Team 1" autocomplete="off" spellcheck="false" />
+        <label>Text Color</label>
+        <input id="LtsT1Fg" type="color" value="#ffffff" />
+        <label>Bar Color</label>
+        <input id="LtsT1Bg" type="color" value="#333333" />
+        <label>Logo File</label>
+        <div class="logo-row">
+          <input id="LtsT1Logo" type="text" placeholder="logos/team.png or https://..." autocomplete="off" spellcheck="false" />
+          <input id="LtsT1LogoFile" type="file" accept="image/*" style="display:none" onchange="ltsReadLogoFile(this,'LtsT1Logo')" />
+          <button onclick="document.getElementById('LtsT1LogoFile').click()">Browse</button>
+          <button onclick="ltsEmbedLogo('LtsT1Logo')">Embed</button>
+        </div>
+        <div id="LtsT1LogoStatus" class="logo-status"></div>
+        <label>Logo Vertical Position</label>
+        <div class="range-row">
+          <input id="LtsT1LogoY" type="range" min="0" max="100" value="50" oninput="ltsUpdateLogoYLabel(1, this.value)" />
+          <button type="button" class="range-reset" onclick="ltsResetLogoY(1)">Reset</button>
+        </div>
+        <label class="team-header">Team 2</label>
+        <label>Name</label>
+        <input id="LtsT2Name" type="text" placeholder="Team 2" autocomplete="off" spellcheck="false" />
+        <label>Text Color</label>
+        <input id="LtsT2Fg" type="color" value="#ffffff" />
+        <label>Bar Color</label>
+        <input id="LtsT2Bg" type="color" value="#333333" />
+        <label>Logo File</label>
+        <div class="logo-row">
+          <input id="LtsT2Logo" type="text" placeholder="logos/team.png or https://..." autocomplete="off" spellcheck="false" />
+          <input id="LtsT2LogoFile" type="file" accept="image/*" style="display:none" onchange="ltsReadLogoFile(this,'LtsT2Logo')" />
+          <button onclick="document.getElementById('LtsT2LogoFile').click()">Browse</button>
+          <button onclick="ltsEmbedLogo('LtsT2Logo')">Embed</button>
+        </div>
+        <div id="LtsT2LogoStatus" class="logo-status"></div>
+        <label>Logo Vertical Position</label>
+        <div class="range-row">
+          <input id="LtsT2LogoY" type="range" min="0" max="100" value="50" oninput="ltsUpdateLogoYLabel(2, this.value)" />
+          <button type="button" class="range-reset" onclick="ltsResetLogoY(2)">Reset</button>
+        </div>
+        <div class="game-tab-inline">
+          <label class="team-header" style="border-top:1px solid #ddd; padding-top:8px; margin-top:10px;">Game Tab</label>
+          <label>Text</label>
+          <input id="LtsGtText" type="text" placeholder="TOURNAMENT NAME — ROUND" autocomplete="off" />
+          <label>Text Color</label>
+          <input id="LtsGtTextColor" type="color" value="#111111" />
+          <label>Background Color</label>
+          <input id="LtsGtColor" type="color" value="#f5c518" />
+        </div>
+        <div id="LtsStatus"></div>
+        <button id="ltsApplyBtn" onclick="ltsApply()">Apply</button>
+        <button id="ltsClearBtn" onclick="ltsClear()">Clear Local</button>
+      </div>
+      <div id="Scaling" class="Panel">
+        <h2>Scaling</h2>
+        <div class="scaling-row">
+          <input sbControl="$.Scaling" type="range" min="50" max="200" />
+          <input sbControl="$.Scaling" type="number" />
+          <span>%</span>
+        </div>
+      </div>
+      <div id="Background" class="Panel">
+        <h2>Background</h2>
+        <select sbControl="$.BackgroundColor">
+          <option value="transparent">Transparent</option>
+          <option value="#00ff00">Green</option>
+        </select>
+      </div>
+      <div id="PostTimeoutClock" class="Panel">
+        <h2>Clock After Timeout</h2>
+        <select sbControl="$.ClockAfterTimeout">
+          <option value="Lineup">Lineup</option>
+          <option value="Timeout">Timeout</option>
+        </select>
+      </div>
+
+      <div id="CrgConnection" class="Panel">
+        <h2>CRG Connection</h2>
+        <label>IP Address</label>
+        <input id="CrgIp" type="text" placeholder="blank = this server" autocomplete="off" spellcheck="false" />
+        <label>Port</label>
+        <input id="CrgPort" type="number" placeholder="8000" min="1" max="65535" />
+        <label>Timeout</label>
+        <div class="timeout-row">
+          <input id="CrgTimeout" type="number" placeholder="5" min="1" max="60" />
+          <span>seconds</span>
+        </div>
+        <div id="CrgStatus"></div>
+        <button id="CrgConnect" onclick="ovaApplyConnection()">Connect</button>
+        <button id="CrgClear" onclick="ovaClearConnection()">Reset to Default</button>
+      </div>
+      <div id="GameConfigs" class="Panel">
+        <h2>Game Configs</h2>
+        <p id="GameConfigsNote">Load a saved configuration from the <code>configs/</code> folder. Requires CRG to be serving the overlay.</p>
+        <div class="config-select-row">
+          <select id="GameConfigSelect" onchange="gcOnSelect()">
+            <option value="">-- Select a config --</option>
+          </select>
+          <button id="GameConfigRefresh" onclick="gcLoadList()" title="Refresh list">↻</button>
+        </div>
+        <div id="GameConfigStatus" class="game-config-status"></div>
+        <button id="GameConfigLoad" onclick="gcLoad()" disabled>Load Config</button>
+        <label>Save current settings as</label>
+        <div class="config-saveas-row">
+          <input id="GameConfigSaveName" type="text" placeholder="nashville-vs-acadiana" spellcheck="false" autocomplete="off" />
+          <span class="config-ext">.js</span>
+        </div>
+        <button id="GameConfigSave" onclick="gcSave()">Save as Config</button>
+      </div>
+    </div>
+    <div id="Preview">
+      <div id="PreviewFrame">
+        <iframe src="../index.html"></iframe>
+      </div>
+      <div id="PreviewSizeLabel">Preview — 1920×1080 scaled to fit</div>
+      <div id="VersionLabel">🟤 Thin Mint Scoreboard Overlay — v2.0.0</div>
+    </div>
+
+  <!-- ── Connection panel — self-contained, no jQuery, no CRG injection ───
+       Defined inline so the buttons always work even when the configured
+       CRG host is unreachable and CRG skips script injection.
+  ──────────────────────────────────────────────────────────────────────── -->
+  <script>
+    (function () {
+      var _hasEverConnected = false;
+
+      function _statusEl() { return document.getElementById('CrgStatus');     }
+      function _panelEl()  { return document.getElementById('CrgConnection'); }
+
+      function _setStatus(text, color) {
+        var el = _statusEl();
+        if (el) { el.textContent = text; el.style.color = color; }
+      }
+
+      function _initPanel() {
+        var cfg     = window.TMSB_CONFIG || {};
+        var ip      = localStorage.getItem('tmsb_crg_ip');
+        var port    = localStorage.getItem('tmsb_crg_port');
+        var timeout = localStorage.getItem('tmsb_crg_timeout');
+
+        // Pre-fill inputs — localStorage first, then config.js defaults.
+        var ipEl      = document.getElementById('CrgIp');
+        var portEl    = document.getElementById('CrgPort');
+        var timeoutEl = document.getElementById('CrgTimeout');
+        if (ipEl)      { ipEl.value      = ip   || cfg.CRG_IP   || ''; }
+        if (portEl)    { portEl.value    = port || cfg.CRG_PORT || ''; }
+        if (timeoutEl) {
+          var ms = timeout || (cfg.TIMEOUT_MS ? String(cfg.TIMEOUT_MS) : '');
+          timeoutEl.value = ms ? Math.round(parseInt(ms, 10) / 1000) : '';
+        }
+
+        if (ip) {
+          _setStatus('● Connecting to ' + ip + ':' + (port || '8000') + '…', '#fa0');
+        } else {
+          _setStatus('○ Using this server (no remote configured)', '#aaa');
+        }
+      }
+
+      /* core.js loaded — script is ready; WS connection may still be pending. */
+      document.addEventListener('tmsb:crgready', function () {
+        // Status upgrades to green once the WebSocket connects (see wsconnected).
+        // Here we just clear any previous error state.
+        var p = _panelEl(); if (p) p.classList.remove('crg-offline');
+      });
+
+      /* WebSocket connected — CRG is live. Push any locally-cached team
+         settings to CRG immediately so every connected overlay instance
+         (OBS, Chromium, etc.) gets the correct values even if CRG was
+         restarted and has lost the Overlay.TMSB.* keys. */
+      document.addEventListener('tmsb:wsconnected', function () {
+        _hasEverConnected = true;
+        _setStatus('● Connected to scoreboard', '#4f4');
+        var p = _panelEl(); if (p) p.classList.remove('crg-offline');
+
+        var syncFields = [
+          { ls: 'tmsb_team1_name',        wsKey: 'ScoreBoard.Settings.Setting(Overlay.TMSB.Team1.Name)'    },
+          { ls: 'tmsb_team1_color_fg',    wsKey: 'ScoreBoard.Settings.Setting(Overlay.TMSB.Team1.ColorFg)' },
+          { ls: 'tmsb_team1_color_bg',    wsKey: 'ScoreBoard.Settings.Setting(Overlay.TMSB.Team1.ColorBg)' },
+          { ls: 'tmsb_team1_logo',        wsKey: 'ScoreBoard.Settings.Setting(Overlay.TMSB.Team1.Logo)'    },
+          { ls: 'tmsb_team1_logo_y',      wsKey: 'ScoreBoard.Settings.Setting(Overlay.TMSB.Team1.LogoY)'   },
+          { ls: 'tmsb_team2_name',        wsKey: 'ScoreBoard.Settings.Setting(Overlay.TMSB.Team2.Name)'    },
+          { ls: 'tmsb_team2_color_fg',    wsKey: 'ScoreBoard.Settings.Setting(Overlay.TMSB.Team2.ColorFg)' },
+          { ls: 'tmsb_team2_color_bg',    wsKey: 'ScoreBoard.Settings.Setting(Overlay.TMSB.Team2.ColorBg)' },
+          { ls: 'tmsb_team2_logo',        wsKey: 'ScoreBoard.Settings.Setting(Overlay.TMSB.Team2.Logo)'    },
+          { ls: 'tmsb_team2_logo_y',      wsKey: 'ScoreBoard.Settings.Setting(Overlay.TMSB.Team2.LogoY)'   },
+          { ls: 'tmsb_crg_ip',            wsKey: 'ScoreBoard.Settings.Setting(Overlay.TMSB.CrgIp)'         },
+          { ls: 'tmsb_crg_port',          wsKey: 'ScoreBoard.Settings.Setting(Overlay.TMSB.CrgPort)'       },
+          { ls: 'tmsb_crg_timeout',       wsKey: 'ScoreBoard.Settings.Setting(Overlay.TMSB.CrgTimeout)'    }
+        ];
+        syncFields.forEach(function (f) {
+          var val = localStorage.getItem(f.ls);
+          if (val) { WS.Set(f.wsKey, val); }
+        });
+      });
+
+      /* WebSocket dropped — CRG is reconnecting. */
+      document.addEventListener('tmsb:wsdisconnected', function () {
+        if (!_hasEverConnected) { return; }
+        _setStatus('↺ Reconnecting…', '#fa0');
+      });
+
+      /* Initial connection failed outright. */
+      document.addEventListener('tmsb:crgfailed', function (e) {
+        var reason = e.detail && e.detail.reason;
+        var secs   = Math.round((window._TMSB_TIMEOUT_MS || 5000) / 1000);
+        var msg    = (reason === 'timeout')
+          ? '⚠ No response after ' + secs + ' s — host may be offline or unreachable'
+          : '⚠ Host is reachable but CRG Scoreboard does not appear to be running';
+        _setStatus(msg, '#f88');
+        var p = _panelEl(); if (p) p.classList.add('crg-offline');
+      });
+
+      /* Called by onclick on the Connect button. */
+      window.ovaApplyConnection = function () {
+        var ipEl      = document.getElementById('CrgIp');
+        var portEl    = document.getElementById('CrgPort');
+        var timeoutEl = document.getElementById('CrgTimeout');
+        var ip        = ipEl      ? ipEl.value.trim()      : '';
+        var port      = portEl    ? portEl.value.trim()    : '';
+        var timeoutS  = timeoutEl ? timeoutEl.value.trim() : '';
+
+        // Blank, 'localhost', or '127.0.0.1' → reset to local serving host.
+        if (['', 'localhost', '127.0.0.1'].indexOf(ip.toLowerCase()) !== -1) {
+          localStorage.removeItem('tmsb_crg_ip');
+          localStorage.removeItem('tmsb_crg_port');
+          localStorage.removeItem('tmsb_crg_timeout');
+          window.location.reload();
+          return;
+        }
+
+        var portNum    = parseInt(port, 10);
+        var timeoutNum = parseInt(timeoutS, 10);
+        if (port && (isNaN(portNum) || portNum < 1 || portNum > 65535)) {
+          alert('Port must be a number between 1 and 65535.');
+          return;
+        }
+        if (timeoutS && (isNaN(timeoutNum) || timeoutNum < 1 || timeoutNum > 60)) {
+          alert('Timeout must be between 1 and 60 seconds.');
+          return;
+        }
+
+        localStorage.setItem('tmsb_crg_ip', ip);
+        if (port)    { localStorage.setItem('tmsb_crg_port',    port);                  }
+        else         { localStorage.removeItem('tmsb_crg_port');                         }
+        if (timeoutS){ localStorage.setItem('tmsb_crg_timeout', String(timeoutNum * 1000)); }
+        else         { localStorage.removeItem('tmsb_crg_timeout');                      }
+        // Push to CRG so every other connected overlay (Chrome, OBS, etc.)
+        // receives the canonical IP via WS.Register and caches it in
+        // localStorage — same mechanism used for team names and colours.
+        if (typeof WS !== 'undefined' && WS && typeof WS.Set === 'function') {
+          WS.Set('ScoreBoard.Settings.Setting(Overlay.TMSB.CrgIp)',      ip);
+          WS.Set('ScoreBoard.Settings.Setting(Overlay.TMSB.CrgPort)',     port || '8000');
+          WS.Set('ScoreBoard.Settings.Setting(Overlay.TMSB.CrgTimeout)',  String(timeoutNum ? timeoutNum * 1000 : 5000));
+        }
+        window.location.reload();
+      };
+
+      /* Called by onclick on the Reset button. */
+      window.ovaClearConnection = function () {
+        localStorage.removeItem('tmsb_crg_ip');
+        localStorage.removeItem('tmsb_crg_port');
+        localStorage.removeItem('tmsb_crg_timeout');
+        window.location.reload();
+      };
+
+      /* ── Game Configs ────────────────────────────────────────────────────── */
+      var _gcBasePath = (function () {
+        var path = window.location.pathname;
+        /* Strip filename to get the directory (tmsb/admin/) */
+        path = path.substring(0, path.lastIndexOf('/') + 1);
+        /* Go up one level from admin/ to reach tmsb/configs/ */
+        path = path.substring(0, path.slice(0, -1).lastIndexOf('/') + 1);
+        return path + 'configs/';
+      })();
+
+      function _gcStatus(msg, color) {
+        var el = document.getElementById('GameConfigStatus');
+        if (el) { el.textContent = msg; el.style.color = color || '#888'; }
+      }
+
+      window.gcLoadList = function () {
+        var sel = document.getElementById('GameConfigSelect');
+        if (!sel) { return; }
+        _gcStatus('Loading\u2026', '#888');
+
+        fetch(_gcBasePath)
+          .then(function (r) {
+            if (!r.ok) { throw new Error('HTTP ' + r.status); }
+            return r.text();
+          })
+          .then(function (html) {
+            /* Parse <a href="..."> links from CRG's directory listing */
+            var matches = html.match(/href="([^"]+\.js)"/gi) || [];
+            var files = matches
+              .map(function (m) { return m.match(/href="([^"]+)"/i)[1]; })
+              .filter(function (f) { return f !== 'template.js'; })
+              .map(function (f) {
+                /* Strip any path prefix — keep filename only */
+                return f.split('/').pop();
+              });
+
+            /* Rebuild select options */
+            sel.innerHTML = '<option value="">-- Select a config --</option>';
+            files.forEach(function (f) {
+              var opt = document.createElement('option');
+              opt.value = f;
+              opt.textContent = f.replace(/\.js$/i, '');
+              sel.appendChild(opt);
+            });
+
+            if (files.length === 0) {
+              _gcStatus('No config files found in configs/.', '#888');
+            } else {
+              _gcStatus(files.length + ' config' + (files.length > 1 ? 's' : '') + ' found.', '#2a6');
+            }
+            document.getElementById('GameConfigLoad').disabled = true;
+          })
+          .catch(function (e) {
+            _gcStatus('\u26a0 Could not load list \u2014 is CRG serving the overlay?', '#c44');
+          });
+      };
+
+      window.gcOnSelect = function () {
+        var sel = document.getElementById('GameConfigSelect');
+        var btn = document.getElementById('GameConfigLoad');
+        var hasValue = !!(sel && sel.value);
+        if (btn) { btn.disabled = !hasValue; }
+      };
+
+      window.gcLoad = function () {
+        var sel = document.getElementById('GameConfigSelect');
+        var file = sel && sel.value;
+        if (!file) { return; }
+
+        _gcStatus('Loading ' + file + '\u2026', '#888');
+
+        fetch(_gcBasePath + file)
+          .then(function (r) {
+            if (!r.ok) { throw new Error('HTTP ' + r.status); }
+            return r.text();
+          })
+          .then(function (src) {
+            /* Execute in a sandboxed scope — sets window.TMSB_GAME_CONFIG */
+            delete window.TMSB_GAME_CONFIG;
+            try {
+              /* jshint evil:true */
+              (new Function(src))();
+            } catch (e) {
+              throw new Error('Parse error: ' + e.message);
+            }
+            var cfg = window.TMSB_GAME_CONFIG;
+            if (!cfg) { throw new Error('File did not set TMSB_GAME_CONFIG'); }
+
+            /* Populate form fields */
+            var set = function (id, val) {
+              var el = document.getElementById(id);
+              if (el && val !== undefined && val !== null) { el.value = val; }
+            };
+            set('CrgIp',      cfg.CRG_IP);
+            set('CrgPort',    cfg.CRG_PORT);
+            set('CrgTimeout', cfg.TIMEOUT_MS ? Math.round(cfg.TIMEOUT_MS / 1000) : '');
+            set('LtsT1Name',  cfg.TEAM1_NAME);
+            set('LtsT1Fg',    cfg.TEAM1_COLOR_FG);
+            set('LtsT1Bg',    cfg.TEAM1_COLOR_BG);
+            set('LtsT1Logo',  cfg.TEAM1_LOGO);
+            set('LtsT2Name',  cfg.TEAM2_NAME);
+            set('LtsT2Fg',    cfg.TEAM2_COLOR_FG);
+            set('LtsT2Bg',    cfg.TEAM2_COLOR_BG);
+            set('LtsT2Logo',  cfg.TEAM2_LOGO);
+            set('LtsGtText',      cfg.GAMETAB_TEXT);
+            set('LtsGtColor',     cfg.GAMETAB_COLOR);
+            set('LtsGtTextColor', cfg.GAMETAB_TEXT_COLOR);
+            set('LtsT1LogoY',     cfg.TEAM1_LOGO_Y !== undefined ? cfg.TEAM1_LOGO_Y : (cfg.LOGO_Y || '50'));
+            set('LtsT2LogoY',     cfg.TEAM2_LOGO_Y !== undefined ? cfg.TEAM2_LOGO_Y : (cfg.LOGO_Y || '50'));
+            if (typeof window.ltsUpdateLogoYLabel === 'function') {
+              window.ltsUpdateLogoYLabel(1, document.getElementById('LtsT1LogoY').value || 50);
+              window.ltsUpdateLogoYLabel(2, document.getElementById('LtsT2LogoY').value || 50);
+            }
+
+            if (typeof window.ltsApply === 'function') { window.ltsApply(); }
+            _gcStatus('\u2713 Loaded and applied: ' + file.replace(/\.js$/i, ''), '#2a6');
+          })
+          .catch(function (e) {
+            _gcStatus('\u26a0 ' + e.message, '#c44');
+          });
+      };
+
+      window.gcSave = function () {
+        var nameEl = document.getElementById('GameConfigSaveName');
+        var name   = nameEl ? nameEl.value.trim().replace(/\.js$/i, '') : '';
+        if (!name) { _gcStatus('Enter a filename first.', '#c44'); return; }
+
+        /* Build content using same _cfgBuildContent but with TMSB_GAME_CONFIG */
+        var v = function (id) { var el = document.getElementById(id); return el ? el.value.trim() : ''; };
+        var q = function (s) {
+          var r = '';
+          for (var i = 0; i < s.length; i++) {
+            var ch = s[i];
+            if (ch === '\\') { r += '\\\\'; }
+            else if (ch === "'") { r += "\\'"; }
+            else { r += ch; }
+          }
+          return "'" + r + "'";
+        };
+        var timeoutMs = v('CrgTimeout') ? String(parseInt(v('CrgTimeout'), 10) * 1000) : '5000';
+        var lines = [
+          '/* TMSB Overlay — ' + name + ' */',
+          'window.TMSB_GAME_CONFIG = {',
+          '  CRG_IP:     ' + q(v('CrgIp') || 'localhost') + ',',
+          '  CRG_PORT:   ' + q(v('CrgPort') || '8000') + ',',
+          '  TIMEOUT_MS: ' + timeoutMs + ',',
+          '  TEAM1_NAME:     ' + q(v('LtsT1Name')) + ',',
+          '  TEAM1_COLOR_FG: ' + q(v('LtsT1Fg')) + ',',
+          '  TEAM1_COLOR_BG: ' + q(v('LtsT1Bg')) + ',',
+          '  TEAM1_LOGO:     ' + q(v('LtsT1Logo')) + ',',
+          '  TEAM2_NAME:     ' + q(v('LtsT2Name')) + ',',
+          '  TEAM2_COLOR_FG: ' + q(v('LtsT2Fg')) + ',',
+          '  TEAM2_COLOR_BG: ' + q(v('LtsT2Bg')) + ',',
+          '  TEAM2_LOGO:     ' + q(v('LtsT2Logo')) + ',',
+          '',
+          '  GAMETAB_TEXT:       ' + q(v('LtsGtText')) + ',',
+          '  GAMETAB_COLOR:      ' + q(v('LtsGtColor')) + ',',
+          '  GAMETAB_TEXT_COLOR: ' + q(v('LtsGtTextColor')) + ',',
+          '  TEAM1_LOGO_Y:       ' + q(v('LtsT1LogoY') || '50') + ',',
+          '  TEAM2_LOGO_Y:       ' + q(v('LtsT2LogoY') || '50') + '',
+          '};'
+        ];
+        var content = lines.join('\n');
+        var filename = name + '.js';
+
+        /* Try File System Access API first, then download */
+        if (window.showSaveFilePicker) {
+          window.showSaveFilePicker({
+            suggestedName: filename,
+            types: [{ description: 'JavaScript', accept: { 'text/javascript': ['.js'] } }]
+          }).then(function (fh) {
+            return fh.createWritable().then(function (w) {
+              return w.write(content).then(function () { return w.close(); });
+            });
+          }).then(function () {
+            _gcStatus('\u2713 Saved ' + filename, '#2a6');
+            gcLoadList();
+          }).catch(function (e) {
+            if (e.name !== 'AbortError') { _gcDownload(content, filename); }
+          });
+        } else {
+          _gcDownload(content, filename);
+        }
+      };
+
+      function _gcDownload(content, filename) {
+        var blob = new Blob([content], { type: 'text/javascript' });
+        var url  = URL.createObjectURL(blob);
+        var a    = document.createElement('a');
+        a.href = url; a.download = filename;
+        document.body.appendChild(a); a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        _gcStatus('\u2193 ' + filename + ' downloaded \u2014 move it into configs/ and hit \u21bb', '#f90');
+      }
+
+      /* Auto-load list on page ready */
+      document.addEventListener('tmsb:wsinit', gcLoadList);
+      /* Also try on DOMContentLoaded in case WS event already fired */
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', gcLoadList);
+      } else {
+        gcLoadList();
+      }
+
+
+      /* ── Logo embed + copy to config.js ────────────────────────────────── */
+      window.ltsEmbedLogo = function (inputId) {
+        var input     = document.getElementById(inputId);
+        var statusId  = inputId + 'Status';
+        var statusEl  = document.getElementById(statusId);
+        var url       = input ? input.value.trim() : '';
+
+        function setStatus(msg, color) {
+          if (statusEl) { statusEl.textContent = msg; statusEl.style.color = color || '#888'; }
+        }
+
+        if (!url) { setStatus('Enter a URL or path first.', '#c44'); return; }
+
+        setStatus('Loading…', '#888');
+        var img = new Image();
+        img.onload = function () {
+          try {
+            var canvas = document.createElement('canvas');
+            canvas.width  = img.naturalWidth;
+            canvas.height = img.naturalHeight;
+            canvas.getContext('2d').drawImage(img, 0, 0);
+            var dataURL = canvas.toDataURL('image/png');
+            input.value = dataURL;
+            setStatus('\u2713 Embedded. Click Apply to save.', '#2a6');
+          } catch (e) {
+            setStatus('⚠ Cross-origin image — use Browse instead.', '#c44');
+          }
+        };
+        img.onerror = function () {
+          setStatus('⚠ Could not load image. Check the path.', '#c44');
+        };
+        img.src = url;
+      };
+
+      /* ── Logo file reader ────────────────────────────────────────────────── */
+      window.ltsReadLogoFile = function (input, targetId) {
+        var file = input.files && input.files[0];
+        if (!file) { return; }
+        var reader = new FileReader();
+        reader.onload = function (e) {
+          var el = document.getElementById(targetId);
+          if (el) {
+            el.value = e.target.result; // base64 data URL
+          }
+          // Reset file input so the same file can be picked again if needed
+          input.value = '';
+        };
+        reader.readAsDataURL(file);
+      };
+
+      /* ── Logo injection (mirrored from index.js) ───────────────────────── */
+      function _tmsbGetPreviewDocument() {
+        var frame = document.getElementById('PreviewFrame');
+        var iframe = frame && frame.querySelector('iframe');
+        return iframe && iframe.contentDocument ? iframe.contentDocument : null;
+      }
+
+      function _tmsbCollectLogoSettings(useFormValues) {
+        var cfg = window.TMSB_GAME_CONFIG || window.TMSB_CONFIG || {};
+        function formVal(id, fallback) {
+          var el = document.getElementById(id);
+          return el && el.value !== '' ? el.value : fallback;
+        }
+        return {
+          logo1: useFormValues ? formVal('LtsT1Logo', localStorage.getItem('tmsb_team1_logo') || cfg.TEAM1_LOGO || '') : (localStorage.getItem('tmsb_team1_logo') || cfg.TEAM1_LOGO || ''),
+          logo2: useFormValues ? formVal('LtsT2Logo', localStorage.getItem('tmsb_team2_logo') || cfg.TEAM2_LOGO || '') : (localStorage.getItem('tmsb_team2_logo') || cfg.TEAM2_LOGO || ''),
+          logoY1: useFormValues ? formVal('LtsT1LogoY', localStorage.getItem('tmsb_team1_logo_y') || cfg.TEAM1_LOGO_Y || cfg.LOGO_Y || '50') : (localStorage.getItem('tmsb_team1_logo_y') || cfg.TEAM1_LOGO_Y || cfg.LOGO_Y || '50'),
+          logoY2: useFormValues ? formVal('LtsT2LogoY', localStorage.getItem('tmsb_team2_logo_y') || cfg.TEAM2_LOGO_Y || cfg.LOGO_Y || '50') : (localStorage.getItem('tmsb_team2_logo_y') || cfg.TEAM2_LOGO_Y || cfg.LOGO_Y || '50')
+        };
+      }
+
+      window._tmsbApplyLogos = function (useFormValues) {
+        var vals = _tmsbCollectLogoSettings(!!useFormValues);
+        var rules = [];
+        if (vals.logo1) { rules.push('.TeamBox [Team="1"] .TeamLogo { background-image: url(' + JSON.stringify(vals.logo1) + '); background-position: 50% ' + vals.logoY1 + '% !important; }'); }
+        else { rules.push('.TeamBox [Team="1"] .TeamLogo { background-position: 50% ' + vals.logoY1 + '% !important; }'); }
+        if (vals.logo2) { rules.push('.TeamBox [Team="2"] .TeamLogo { background-image: url(' + JSON.stringify(vals.logo2) + '); background-position: 50% ' + vals.logoY2 + '% !important; }'); }
+        else { rules.push('.TeamBox [Team="2"] .TeamLogo { background-position: 50% ' + vals.logoY2 + '% !important; }'); }
+        var NL = String.fromCharCode(10);
+        var doc = _tmsbGetPreviewDocument() || document;
+        var el = doc.getElementById('tmsb-logo-styles');
+        if (!el) { el = doc.createElement('style'); el.id = 'tmsb-logo-styles'; doc.head.appendChild(el); }
+        el.textContent = rules.join(NL);
+        return rules.join(NL);
+      };
+
+      window.ltsResetLogoY = function (team) {
+        var id = team === 2 ? 'LtsT2LogoY' : 'LtsT1LogoY';
+        var el = document.getElementById(id);
+        if (!el) { return; }
+        el.value = '50';
+        if (typeof window.ltsUpdateLogoYLabel === 'function') {
+          window.ltsUpdateLogoYLabel(team, 50);
+        }
+      };
+
+      window.ltsUpdateLogoYLabel = function (team, val) {
+        var label = document.getElementById(team === 2 ? 'LtsT2LogoYValue' : 'LtsT1LogoYValue');
+        if (label) { label.textContent = String(val || 50) + '%'; }
+        if (typeof window._tmsbApplyLogos === 'function') { window._tmsbApplyLogos(true); }
+      };
+
+      window.tmsbGuardGameTab = function (e) {
+        var textEl = document.getElementById('LtsGtText');
+        if (!textEl) { return; }
+        // Determine whether this click would turn the tab ON (currently off → on)
+        var btn = e.currentTarget;
+        var isCurrentlyOn = false;
+        try {
+          isCurrentlyOn = btn.classList.contains('On') || btn.classList.contains('Active') ||
+                          btn.getAttribute('aria-pressed') === 'true' ||
+                          !!(window.WS && WS.state && WS.state['ScoreBoard.Settings.Setting(Overlay.TMSB.GameTab.Show)']);
+        } catch (ex) {}
+        // Only block when trying to turn ON with no text
+        if (!isCurrentlyOn && !textEl.value.trim()) {
+          e.stopImmediatePropagation();
+          e.preventDefault();
+          textEl.focus();
+          textEl.style.outline = '2px solid #f55';
+          setTimeout(function () { textEl.style.outline = ''; }, 1200);
+        }
+      };
+
+      /* ── Local Team Settings ─────────────────────────────────────────── */
+
+      function _ltsInit() {
+        var cfg = window.TMSB_CONFIG || {};
+        var fields = [
+          { id: 'LtsT1Name',      ls: 'tmsb_team1_name',        cfg: cfg.TEAM1_NAME     },
+          { id: 'LtsT1Fg',        ls: 'tmsb_team1_color_fg',    cfg: cfg.TEAM1_COLOR_FG },
+          { id: 'LtsT1Bg',        ls: 'tmsb_team1_color_bg',    cfg: cfg.TEAM1_COLOR_BG },
+          { id: 'LtsT1Logo',      ls: 'tmsb_team1_logo',        cfg: cfg.TEAM1_LOGO     },
+          { id: 'LtsT2Name',      ls: 'tmsb_team2_name',        cfg: cfg.TEAM2_NAME     },
+          { id: 'LtsT2Fg',        ls: 'tmsb_team2_color_fg',    cfg: cfg.TEAM2_COLOR_FG },
+          { id: 'LtsT2Bg',        ls: 'tmsb_team2_color_bg',    cfg: cfg.TEAM2_COLOR_BG },
+          { id: 'LtsT2Logo',      ls: 'tmsb_team2_logo',        cfg: cfg.TEAM2_LOGO     },
+          { id: 'LtsGtText',      ls: 'tmsb_gametab_text',      cfg: cfg.GAMETAB_TEXT || '' },
+          { id: 'LtsGtColor',     ls: 'tmsb_gametab_color',     cfg: cfg.GAMETAB_COLOR || '#f5c518' },
+          { id: 'LtsGtTextColor', ls: 'tmsb_gametab_textcolor', cfg: cfg.GAMETAB_TEXT_COLOR || '#111111' },
+          { id: 'LtsT1LogoY',     ls: 'tmsb_team1_logo_y',      cfg: cfg.TEAM1_LOGO_Y || cfg.LOGO_Y || '50' },
+          { id: 'LtsT2LogoY',     ls: 'tmsb_team2_logo_y',      cfg: cfg.TEAM2_LOGO_Y || cfg.LOGO_Y || '50' }
+        ];
+        fields.forEach(function (f) {
+          var val = localStorage.getItem(f.ls) || f.cfg || '';
+          var el  = document.getElementById(f.id);
+          if (el && val) { el.value = val; }
+        });
+        if (typeof window.ltsUpdateLogoYLabel === 'function') {
+          var logoY1El = document.getElementById('LtsT1LogoY');
+          var logoY2El = document.getElementById('LtsT2LogoY');
+          window.ltsUpdateLogoYLabel(1, logoY1El ? logoY1El.value : 50);
+          window.ltsUpdateLogoYLabel(2, logoY2El ? logoY2El.value : 50);
+        }
+      }
+
+      window.ltsApply = function () {
+        var fields = [
+          { id: 'LtsT1Name',      ls: 'tmsb_team1_name',        wsKey: 'ScoreBoard.Settings.Setting(Overlay.TMSB.Team1.Name)'    },
+          { id: 'LtsT1Fg',        ls: 'tmsb_team1_color_fg',    wsKey: 'ScoreBoard.Settings.Setting(Overlay.TMSB.Team1.ColorFg)' },
+          { id: 'LtsT1Bg',        ls: 'tmsb_team1_color_bg',    wsKey: 'ScoreBoard.Settings.Setting(Overlay.TMSB.Team1.ColorBg)' },
+          { id: 'LtsT1Logo',      ls: 'tmsb_team1_logo',        wsKey: 'ScoreBoard.Settings.Setting(Overlay.TMSB.Team1.Logo)'    },
+          { id: 'LtsT2Name',      ls: 'tmsb_team2_name',        wsKey: 'ScoreBoard.Settings.Setting(Overlay.TMSB.Team2.Name)'    },
+          { id: 'LtsT2Fg',        ls: 'tmsb_team2_color_fg',    wsKey: 'ScoreBoard.Settings.Setting(Overlay.TMSB.Team2.ColorFg)' },
+          { id: 'LtsT2Bg',        ls: 'tmsb_team2_color_bg',    wsKey: 'ScoreBoard.Settings.Setting(Overlay.TMSB.Team2.ColorBg)' },
+          { id: 'LtsT2Logo',      ls: 'tmsb_team2_logo',        wsKey: 'ScoreBoard.Settings.Setting(Overlay.TMSB.Team2.Logo)'    },
+          { id: 'LtsGtText',      ls: 'tmsb_gametab_text',      wsKey: 'ScoreBoard.Settings.Setting(Overlay.TMSB.GameTab.Text)'      },
+          { id: 'LtsGtColor',     ls: 'tmsb_gametab_color',     wsKey: 'ScoreBoard.Settings.Setting(Overlay.TMSB.GameTab.Color)'     },
+          { id: 'LtsGtTextColor', ls: 'tmsb_gametab_textcolor', wsKey: 'ScoreBoard.Settings.Setting(Overlay.TMSB.GameTab.TextColor)' },
+          { id: 'LtsT1LogoY',     ls: 'tmsb_team1_logo_y',      wsKey: 'ScoreBoard.Settings.Setting(Overlay.TMSB.Team1.LogoY)'   },
+          { id: 'LtsT2LogoY',     ls: 'tmsb_team2_logo_y',      wsKey: 'ScoreBoard.Settings.Setting(Overlay.TMSB.Team2.LogoY)'   }
+        ];
+        /* Write to localStorage (local cache) and push to CRG via WS.Set.
+           CRG stores the values under Overlay.TMSB.* keys and broadcasts
+           them to every connected overlay instance — so any browser opening
+           the overlay gets the correct values directly from CRG, with no
+           dependency on localStorage being shared across browsers. */
+        fields.forEach(function (f) {
+          var el  = document.getElementById(f.id);
+          var val = el ? el.value.trim() : '';
+          if (val) { localStorage.setItem(f.ls, val); }
+          else     { localStorage.removeItem(f.ls); }
+          if (f.wsKey && window._TMSB_WS_CONNECTED) { WS.Set(f.wsKey, val || ''); }
+        });
+        // Re-inject logo styles immediately in the admin preview
+        if (typeof _tmsbApplyLogos === 'function') { _tmsbApplyLogos(); }
+        if (typeof window.ltsUpdateLogoYLabel === 'function') {
+          window.ltsUpdateLogoYLabel(1, document.getElementById('LtsT1LogoY').value || 50);
+          window.ltsUpdateLogoYLabel(2, document.getElementById('LtsT2LogoY').value || 50);
+        }
+        var s = document.getElementById('LtsStatus');
+        if (s) { s.textContent = '\u2713 Saved'; s.style.color = '#4f4'; }
+        setTimeout(function () {
+          var s2 = document.getElementById('LtsStatus');
+          if (s2) { s2.textContent = ''; }
+        }, 2000);
+      };
+
+      window.ltsClear = function () {
+        ['tmsb_team1_name','tmsb_team1_color_fg','tmsb_team1_color_bg','tmsb_team1_logo','tmsb_team1_logo_y',
+         'tmsb_team2_name','tmsb_team2_color_fg','tmsb_team2_color_bg','tmsb_team2_logo','tmsb_team2_logo_y',
+         'tmsb_gametab_text','tmsb_gametab_color','tmsb_gametab_textcolor']
+          .forEach(function (k) { localStorage.removeItem(k); });
+        // Also clear the TMSB-namespaced CRG keys so other overlay instances reset too
+        if (window._TMSB_WS_CONNECTED) {
+          ['Overlay.TMSB.Team1.Name','Overlay.TMSB.Team1.ColorFg','Overlay.TMSB.Team1.ColorBg',
+           'Overlay.TMSB.Team1.Logo','Overlay.TMSB.Team1.LogoY',
+           'Overlay.TMSB.Team2.Name','Overlay.TMSB.Team2.ColorFg','Overlay.TMSB.Team2.ColorBg',
+           'Overlay.TMSB.Team2.Logo','Overlay.TMSB.Team2.LogoY',
+           'Overlay.TMSB.GameTab.Text','Overlay.TMSB.GameTab.Color','Overlay.TMSB.GameTab.TextColor']
+            .forEach(function (k) { WS.Set('ScoreBoard.Settings.Setting(' + k + ')', ''); });
+          // Turn off the Game Tab toggle
+          try { WS.Set('ScoreBoard.Settings.Setting(Overlay.TMSB.GameTab.Show)', false); } catch (e) {}
+        }
+        // Reset inputs to spec defaults
+        var defaults = {
+          LtsT1Name: 'Black', LtsT1Fg: '#ffffff', LtsT1Bg: '#111111', LtsT1LogoY: '50',
+          LtsT2Name: 'White', LtsT2Fg: '#ffffff', LtsT2Bg: '#111111', LtsT2LogoY: '50',
+          LtsGtText: '',      LtsGtTextColor: '#000000', LtsGtColor: '#ffffff'
+        };
+        ['LtsT1Name','LtsT1Fg','LtsT1Bg','LtsT1Logo','LtsT1LogoY','LtsT2Name','LtsT2Fg','LtsT2Bg','LtsT2Logo','LtsT2LogoY',
+         'LtsGtText','LtsGtColor','LtsGtTextColor']
+          .forEach(function (id) {
+            var el = document.getElementById(id);
+            if (el) { el.value = id in defaults ? defaults[id] : ''; }
+          });
+        if (typeof window.ltsUpdateLogoYLabel === 'function') { window.ltsUpdateLogoYLabel(1, 50); window.ltsUpdateLogoYLabel(2, 50); }
+        if (typeof _tmsbApplyLogos === 'function') { _tmsbApplyLogos(); }
+        // Push defaults to CRG and update the overlay immediately
+        if (typeof window.ltsApply === 'function') { window.ltsApply(); }
+        var s = document.getElementById('LtsStatus');
+        if (s) { s.textContent = 'Cleared — defaults restored'; s.style.color = '#aaa'; }
+      };
+
+      function _scalePreview() {
+        var frame   = document.getElementById('PreviewFrame');
+        var iframe  = frame && frame.querySelector('iframe');
+        var preview = document.getElementById('Preview');
+        if (!frame || !iframe || !preview) { return; }
+
+        /* Available space inside #Preview minus its padding (12px each side) */
+        var pad  = 24;
+        var label = document.getElementById('PreviewSizeLabel');
+        var labelH = label ? label.offsetHeight + 8 : 0;
+        var avW  = (window.innerWidth  - 300 - pad);
+        var avH  = (window.innerHeight - pad - labelH);
+
+        /* Scale to fit 16:9 within available space */
+        var scale = Math.min(avW / 1920, avH / 1080);
+        var w     = Math.round(1920 * scale);
+        var h     = Math.round(1080 * scale);
+
+        frame.style.width      = w + 'px';
+        frame.style.height     = h + 'px';
+        iframe.style.transform = 'scale(' + scale + ')';
+      }
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function () {
+          _initPanel();
+          _ltsInit();
+          var gtBtn = document.querySelector('button[sbToggle="$.GameTab.Show"]');
+          if (gtBtn && !gtBtn._tmsbGuardBound) {
+            gtBtn.addEventListener('click', window.tmsbGuardGameTab, true);
+            gtBtn._tmsbGuardBound = true;
+          }
+          /* Use rAF to ensure layout is complete before measuring */
+          requestAnimationFrame(_scalePreview);
+        });
+      } else {
+        _initPanel();
+        _ltsInit();
+        var gtBtn = document.querySelector('button[sbToggle="$.GameTab.Show"]');
+        if (gtBtn && !gtBtn._tmsbGuardBound) {
+          gtBtn.addEventListener('click', window.tmsbGuardGameTab, true);
+          gtBtn._tmsbGuardBound = true;
+        }
+        requestAnimationFrame(_scalePreview);
+      }
+      window.addEventListener('resize', _scalePreview);
+      window.addEventListener('load', function () {
+        var frame = document.getElementById('PreviewFrame');
+        var iframe = frame && frame.querySelector('iframe');
+        if (iframe) {
+          iframe.addEventListener('load', function () {
+            if (typeof window._tmsbApplyLogos === 'function') { window._tmsbApplyLogos(true); }
+          });
+        }
+      });
+    })();
+  </script>
+
+  </body>
+</html>

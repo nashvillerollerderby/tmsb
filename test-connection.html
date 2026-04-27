@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<!--
+  TMSB Overlay
+  Copyright (C) 2026 Haley "Thin Mint" Stelly
+
+  This file is an original work (not derived from CRG Scoreboard).
+
+  This program is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  See LICENSE and NOTICE for full details.
+-->
+<html>
+  <head>
+    <title>CRG Connection Test | TMSB Overlay</title>
+    <script src="config.js"></script>
+    <style>
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+
+      body {
+        background: #111;
+        color: #eee;
+        font-family: 'Segoe UI', Arial, sans-serif;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        padding: 2em;
+      }
+
+      .card {
+        background: #1c1c1c;
+        border: 1px solid #333;
+        border-radius: 12px;
+        padding: 2em 2.5em;
+        max-width: 520px;
+        width: 100%;
+      }
+
+      h1 { font-size: 1.4em; margin-bottom: .3em; color: #fff; }
+      .subtitle { font-size: .85em; color: #888; margin-bottom: 1.5em; }
+
+      .field { margin-bottom: 1em; }
+      label { display: block; font-size: .75em; color: #999; margin-bottom: .3em; text-transform: uppercase; letter-spacing: .05em; }
+      .value { font-size: 1em; color: #ccc; font-family: monospace; }
+
+      .result {
+        margin: 1.5em 0;
+        padding: 1em 1.2em;
+        border-radius: 8px;
+        border: 1px solid #333;
+        font-size: .95em;
+        line-height: 1.5;
+        min-height: 3.2em;
+      }
+      .result.pending  { border-color: #555;  color: #aaa;  background: #1a1a1a; }
+      .result.success  { border-color: #3a7;  color: #5d5;  background: #0d2018; }
+      .result.warning  { border-color: #a80;  color: #fa0;  background: #1e1800; }
+      .result.error    { border-color: #833;  color: #f88;  background: #1e0d0d; }
+
+      .timing { font-size: .8em; color: #777; margin-top: .3em; }
+
+      button {
+        background: #2a5a8a;
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        padding: .6em 1.4em;
+        font-size: .9em;
+        cursor: pointer;
+        transition: background .2s;
+      }
+      button:hover { background: #3a7abf; }
+      button:disabled { background: #444; cursor: default; }
+
+      .config-note {
+        margin-top: 1.5em;
+        font-size: .78em;
+        color: #666;
+        line-height: 1.5;
+      }
+      .config-note a { color: #5af; text-decoration: none; }
+      .config-note a:hover { text-decoration: underline; }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <h1>&#128246; CRG Connection Test</h1>
+      <p class="subtitle">Verifies that the overlay can reach the configured CRG Scoreboard. Run this before a bout as a pre-flight check.</p>
+
+      <div class="field">
+        <label>Target host</label>
+        <div class="value" id="target-display">—</div>
+      </div>
+      <div class="field">
+        <label>Timeout</label>
+        <div class="value" id="timeout-display">—</div>
+      </div>
+
+      <div class="result pending" id="result">
+        <span id="result-text">Press <strong>Run Test</strong> to check the connection.</span>
+        <div class="timing" id="result-timing"></div>
+      </div>
+
+      <button id="run-btn" onclick="runTest()">Run Test</button>
+
+      <p class="config-note">
+        Connection settings are read from <code>localStorage</code> (set via the
+        <a href="admin/index.html">Admin panel</a>) with fallback to
+        <a href="config.js"><code>config.js</code></a> defaults.
+        Change the target host in the Admin panel &rarr; CRG Connection, then
+        reload this page.
+      </p>
+    </div>
+
+    <script>
+      /* ── Read configuration (same priority order as loader.js) ─────────── */
+      // Seed localStorage from URL params first so the waterfall below picks them up.
+      try {
+        if (typeof URLSearchParams !== 'undefined' && window.location.search) {
+          var _up = new URLSearchParams(window.location.search);
+          if (_up.get('crg_ip'))      { localStorage.setItem('tmsb_crg_ip',      _up.get('crg_ip'));      }
+          if (_up.get('crg_port'))    { localStorage.setItem('tmsb_crg_port',    _up.get('crg_port'));    }
+          if (_up.get('crg_timeout')) { localStorage.setItem('tmsb_crg_timeout', _up.get('crg_timeout')); }
+        }
+      } catch (e) {}
+      var cfg     = window.TMSB_CONFIG || {};
+      var ip      = localStorage.getItem('tmsb_crg_ip')      || cfg.CRG_IP      || window.location.hostname;
+      var port    = localStorage.getItem('tmsb_crg_port')    || cfg.CRG_PORT    || window.location.port || '8000';
+      var timeout = parseInt(localStorage.getItem('tmsb_crg_timeout') || cfg.TIMEOUT_MS || 5000, 10);
+      var base    = 'http://' + ip + ':' + port;
+
+      document.getElementById('target-display').textContent  = base;
+      document.getElementById('timeout-display').textContent = Math.round(timeout / 1000) + ' s';
+
+      /* ── Connection test ─────────────────────────────────────────────────
+         Uses fetch() in no-cors mode so CORS headers on the CRG server do
+         not matter — we only need to know if the server responded at all.
+         The returned response will be "opaque" (body unreadable), but a
+         resolved promise means the host is up and serving.
+      ──────────────────────────────────────────────────────────────────── */
+      function runTest() {
+        var btn = document.getElementById('run-btn');
+        btn.disabled = true;
+
+        setResult('pending', '&#9679; Testing connection to ' + base + '&hellip;', '');
+
+        var controller = new AbortController();
+        var timer = setTimeout(function () { controller.abort(); }, timeout);
+        var start = Date.now();
+
+        // Probe the CRG index page — a lightweight, always-present resource.
+        fetch(base + '/index.html?_=' + Date.now(), {
+          mode: 'no-cors',
+          cache: 'no-store',
+          signal: controller.signal
+        })
+        .then(function () {
+          clearTimeout(timer);
+          var ms = Date.now() - start;
+          setResult(
+            'success',
+            '&#10003; CRG Scoreboard is reachable at ' + base,
+            'Responded in ' + ms + ' ms'
+          );
+        })
+        .catch(function (err) {
+          clearTimeout(timer);
+          var ms = Date.now() - start;
+          if (err.name === 'AbortError') {
+            setResult(
+              'error',
+              '&#10007; Timed out after ' + Math.round(timeout / 1000) + ' s',
+              'The host at ' + base + ' did not respond. ' +
+              'Check the IP address, port, and that the machine is reachable on the network.'
+            );
+          } else {
+            setResult(
+              'error',
+              '&#10007; Connection refused',
+              'The host at ' + base + ' is reachable but refused the connection. ' +
+              'CRG Scoreboard may not be running, or the port may be wrong.'
+            );
+          }
+        })
+        .finally(function () {
+          btn.disabled = false;
+        });
+      }
+
+      function setResult(type, html, timing) {
+        var el = document.getElementById('result');
+        el.className = 'result ' + type;
+        document.getElementById('result-text').innerHTML   = html;
+        document.getElementById('result-timing').textContent = timing || '';
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,76 @@
+Thin Mint Scoreboard Overlay
+Copyright (C) 2026 Haley "Thin Mint" Stelly,
+              Charlie "KO Belle" Humphreys,
+              Hannah Keyser
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+---
+
+UPSTREAM WORK
+
+This project is a derivative work of the CRG Scoreboard overlay,
+originally developed by the CRG Scoreboard contributors.
+
+Original project:  CRG Derby Scoreboard
+Source repository: https://github.com/rollerderby/scoreboard
+License:           GNU General Public License v3 (or later)
+
+The following files in this repository are derived from or substantially
+based on files originally distributed as part of the CRG Scoreboard:
+
+  index.html        — derived from CRG overlay HTML
+  index.css         — derived from CRG overlay CSS
+  index.js          — derived from CRG overlay JavaScript
+  admin/index.html  — derived from CRG admin overlay HTML
+  admin/index.js    — derived from CRG admin overlay JavaScript
+  admin/index.css   — derived from CRG admin overlay CSS
+
+The following files are original works by the Thin Mint Scoreboard Overlay developers
+and were not derived from the CRG Scoreboard:
+
+  config.js             — deployment configuration
+  loader.js             — CRG connection bootstrap and loader
+  test-connection.html  — pre-bout connectivity test page
+
+---
+
+MODIFICATIONS
+
+The following changes were made to the original CRG Scoreboard overlay:
+
+  - Broadcast-style visual restyling of the scoreboard overlay and
+    admin panel, inspired by the visual language of network sports graphics
+  - Support for connecting to a remote CRG Scoreboard instance
+    over a local network, configurable via the admin panel
+  - CRG connection settings (IP, port, timeout) synced via CRG WebSocket
+    state so all connected overlay clients stay in sync automatically
+  - Configurable connection timeout with offline error screen
+  - Reconnection badge displayed when WebSocket drops mid-bout
+  - Cache-busting on core.js to pick up CRG updates automatically
+  - Consolidated connection bootstrap (loader.js)
+  - Deployment configuration file (config.js)
+  - Pre-bout connection test page (test-connection.html)
+  - Score change flash animation and jam-score delta float
+  - Winning score color highlight and synchronized glow pulse
+  - Jam and period urgency indicators
+  - Timeout type styling (Official, Team, Official Review)
+  - Synchronized blink/pulse system across all live indicators
+  - Smooth panel slide animation keyed to placement mode
+  - Jammer panel with lead indicator, star pass, and penalty states
+  - Lineup/blocker panel with synchronized penalty blinking
+  - Post-timeout lineup clock
+  - Game Tab context banner with customizable text and color
+  - Bottom Placement mode
+  - Winner highlighting on official and unofficial score
+
+---
+
+AI ASSISTANCE
+
+AI tools were used during development to assist with research, planning,
+and debugging. All source code in this project was written by human
+developers. AI was not used to generate source code.
