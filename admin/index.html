@@ -275,7 +275,10 @@
         ];
         syncFields.forEach(function (f) {
           var val = localStorage.getItem(f.ls);
-          if (val) { WS.Set(f.wsKey, val); }
+          // Always push — even when val is null, send '' so CRG explicitly
+          // clears the stored key and stops broadcasting a stale value to
+          // other connected clients (e.g. OBS).
+          WS.Set(f.wsKey, val || '');
         });
       });
 
@@ -310,7 +313,16 @@
           localStorage.removeItem('tmsb_crg_ip');
           localStorage.removeItem('tmsb_crg_port');
           localStorage.removeItem('tmsb_crg_timeout');
-          window.location.reload();
+          localStorage.removeItem('tmsb_last_crg_ip');
+          // Push cleared values to CRG so all connected clients (Chrome, OBS,
+          // etc.) receive the update via WS.Register and remove the stale
+          // remote IP from their own localStorage.
+          if (typeof WS !== 'undefined' && WS && typeof WS.Set === 'function') {
+            WS.Set('ScoreBoard.Settings.Setting(Overlay.TMSB.CrgIp)',     '');
+            WS.Set('ScoreBoard.Settings.Setting(Overlay.TMSB.CrgPort)',    '8000');
+            WS.Set('ScoreBoard.Settings.Setting(Overlay.TMSB.CrgTimeout)', '5000');
+          }
+          setTimeout(function () { window.location.reload(); }, 100);
           return;
         }
 
@@ -338,7 +350,7 @@
           WS.Set('ScoreBoard.Settings.Setting(Overlay.TMSB.CrgPort)',     port || '8000');
           WS.Set('ScoreBoard.Settings.Setting(Overlay.TMSB.CrgTimeout)',  String(timeoutNum ? timeoutNum * 1000 : 5000));
         }
-        window.location.reload();
+        setTimeout(function () { window.location.reload(); }, 100);
       };
 
       /* Called by onclick on the Reset button. */
@@ -346,7 +358,15 @@
         localStorage.removeItem('tmsb_crg_ip');
         localStorage.removeItem('tmsb_crg_port');
         localStorage.removeItem('tmsb_crg_timeout');
-        window.location.reload();
+        localStorage.removeItem('tmsb_last_crg_ip');
+        // Push cleared values to CRG so all connected clients receive the
+        // update and remove the stale remote IP from their own localStorage.
+        if (typeof WS !== 'undefined' && WS && typeof WS.Set === 'function') {
+          WS.Set('ScoreBoard.Settings.Setting(Overlay.TMSB.CrgIp)',     '');
+          WS.Set('ScoreBoard.Settings.Setting(Overlay.TMSB.CrgPort)',    '8000');
+          WS.Set('ScoreBoard.Settings.Setting(Overlay.TMSB.CrgTimeout)', '5000');
+        }
+        setTimeout(function () { window.location.reload(); }, 100);
       };
 
       /* ── Game Configs ────────────────────────────────────────────────────── */
