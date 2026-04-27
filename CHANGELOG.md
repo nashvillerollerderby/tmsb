@@ -6,7 +6,12 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
-## [2.0.0] - 2026-04-26
+## [2.0.0-beta.2] - 2026-04-27
+
+### Fixed
+- Setting the CRG connection to local mode (blank, localhost, or 127.0.0.1) in the Admin panel now correctly propagates to all connected clients, including OBS Browser Source.
+
+## [2.0.0-beta.1] - 2026-04-26
 
 ### Added
 - Added connection testing utility (`test-connection.html`)
