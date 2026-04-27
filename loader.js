@@ -43,13 +43,26 @@
      "Copy Link" button) to bootstrap any browser — Chrome, OBS, a fresh
      Firefox profile — without manual Admin panel setup on each client.
      Values written here are immediately visible to step 1's waterfall.
+
+     Passing an empty value (e.g. ?crg_ip=) explicitly clears the stored key,
+     allowing a stale cached address to be reset via URL alone — useful in
+     OBS, where devtools are not available.
   ─────────────────────────────────────────────────────────────────────── */
   try {
     if (typeof URLSearchParams !== 'undefined' && window.location.search) {
       var _up = new URLSearchParams(window.location.search);
-      if (_up.get('crg_ip'))      { localStorage.setItem('tmsb_crg_ip',      _up.get('crg_ip'));      }
-      if (_up.get('crg_port'))    { localStorage.setItem('tmsb_crg_port',    _up.get('crg_port'));    }
-      if (_up.get('crg_timeout')) { localStorage.setItem('tmsb_crg_timeout', _up.get('crg_timeout')); }
+      if (_up.has('crg_ip')) {
+        if (_up.get('crg_ip'))      { localStorage.setItem('tmsb_crg_ip',      _up.get('crg_ip'));      }
+        else                         { localStorage.removeItem('tmsb_crg_ip');                           }
+      }
+      if (_up.has('crg_port')) {
+        if (_up.get('crg_port'))    { localStorage.setItem('tmsb_crg_port',    _up.get('crg_port'));    }
+        else                         { localStorage.removeItem('tmsb_crg_port');                         }
+      }
+      if (_up.has('crg_timeout')) {
+        if (_up.get('crg_timeout')) { localStorage.setItem('tmsb_crg_timeout', _up.get('crg_timeout')); }
+        else                         { localStorage.removeItem('tmsb_crg_timeout');                      }
+      }
     }
   } catch (e) { /* localStorage may be unavailable in sandboxed iframes */ }
 
