@@ -47,10 +47,20 @@
      Passing an empty value (e.g. ?crg_ip=) explicitly clears the stored key,
      allowing a stale cached address to be reset via URL alone — useful in
      OBS, where devtools are not available.
+
+     ?crg_reset (any value, or bare) clears all four connection keys at once,
+     including tmsb_last_crg_ip. Use this when a stale last-known-good IP is
+     overriding config.js on reload.
   ─────────────────────────────────────────────────────────────────────── */
   try {
     if (typeof URLSearchParams !== 'undefined' && window.location.search) {
       var _up = new URLSearchParams(window.location.search);
+      if (_up.has('crg_reset')) {
+        localStorage.removeItem('tmsb_crg_ip');
+        localStorage.removeItem('tmsb_crg_port');
+        localStorage.removeItem('tmsb_crg_timeout');
+        localStorage.removeItem('tmsb_last_crg_ip');
+      }
       if (_up.has('crg_ip')) {
         if (_up.get('crg_ip'))      { localStorage.setItem('tmsb_crg_ip',      _up.get('crg_ip'));      }
         else                         { localStorage.removeItem('tmsb_crg_ip');                           }

@@ -60,7 +60,7 @@
 window.TMSB_CONFIG = {
 
   /* ── Connection ── */
-  CRG_IP:     'localhost',
+  CRG_IP:     '',
   CRG_PORT:   '8000',
   TIMEOUT_MS: 5000,
 
