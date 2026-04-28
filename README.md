@@ -45,7 +45,7 @@ Supports connecting to a CRG instance running on a **separate computer** on the 
 
 ## Requirements
 
-- [CRG Scoreboard](https://github.com/rollerderby/crg) installed and running on **every machine serving the overlay** — including any separate overlay computer. The overlay depends on CRG to serve its pages and provide several core scripts (`jquery.js`, `core.js`). A second CRG instance on the network acts as the **game data source** (scores, clocks, penalties, etc.) and is what the remote IP setting points to.
+- [CRG Scoreboard](https://github.com/rollerderby/crg) (v2025.9 or higher) installed and running on **every machine serving the overlay** — including any separate overlay computer. The overlay depends on CRG to serve its pages and provide several core scripts (`jquery.js`, `core.js`). A second CRG instance on the network acts as the **game data source** (scores, clocks, penalties, etc.) and is what the remote IP setting points to.
 - A modern desktop browser for pre-game setup (Chrome, Firefox, Edge, or Safari)
 - Network access between machines (same LAN, port 8000 open)
 
