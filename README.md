@@ -3,6 +3,7 @@
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 [![Compatible with CRG](https://img.shields.io/badge/CRG%20ScoreBoard-compatible-blue.svg)](https://github.com/rollerderby/crg)
 [![HTML5](https://img.shields.io/badge/HTML5-pure--client-orange.svg)](https://developer.mozilla.org/en-US/docs/Web/HTML)
+[![Maintenance](https://img.shields.io/badge/maintained-yes-brightgreen.svg)](./)
 ![Trans Rights](https://pride-badges.pony.workers.dev/static/v1?label=trans%20rights&stripeWidth=6&stripeColors=5BCEFA,F5A9B8,FFFFFF,F5A9B8,5BCEFA)
 
 A **broadcast-style scoreboard overlay** for roller derby, built for [CRG Scoreboard](https://github.com/rollerderby/crg). Inspired by the visual language of network sports graphics, TMSB brings professional-grade presentation to roller derby streams — live score, jam clock, team names, penalties, rosters, and more — designed for use with OBS or any browser-source capture tool.
